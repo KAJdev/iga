@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import os
 import sys
 import time
+from typing import TypeAlias
 import cli
 import enum
 import random
@@ -22,55 +23,7 @@ class CellState(enum.Enum):
         else:
             return "⧫"
 
-@dataclass(frozen=True, slots=True)
-class Point:
-    x: int
-    y: int
-
-    def __add__(self, other):
-        return Point(self.x + other.x, self.y + other.y)
-    
-    def __sub__(self, other):
-        return Point(self.x - other.x, self.y - other.y)
-    
-    def __mul__(self, other):
-        return Point(self.x * other.x, self.y * other.y)
-    
-    def __truediv__(self, other):
-        return Point(self.x / other.x, self.y / other.y)
-    
-    def __floordiv__(self, other):
-        return Point(self.x // other.x, self.y // other.y)
-    
-    def __mod__(self, other):
-        return Point(self.x % other.x, self.y % other.y)
-    
-    def __pow__(self, other):
-        return Point(self.x ** other.x, self.y ** other.y)
-    
-    def __str__(self) -> str:
-        return f"({self.x}, {self.y})"
-    
-    def __repr__(self) -> str:
-        return f"Point(x={self.x}, y={self.y})"
-    
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y
-    
-    def __ne__(self, other):
-        return not self == other
-    
-    def __hash__(self):
-        return hash((self.x, self.y))
-    
-    def __bool__(self):
-        return self.x != 0 or self.y != 0
-    
-    def __contains__(self, item):
-        return item in (self.x, self.y)
-    
-    def __len__(self):
-        return 2
+Point: TypeAlias = tuple[int, int]
 
 @dataclass(slots=True)
 class Engine:
@@ -136,14 +89,14 @@ class Engine:
     def get_neighbours(self, x, y) -> list[tuple[CellState, Point]]:
         """Get the neighbours of the cell at the given position."""
         return [
-            (self[y - 1, x - 1], Point(x - 1, y - 1)),
-            (self[y - 1, x], Point(x, y - 1)),
-            (self[y - 1, x + 1], Point(x + 1, y - 1)),
-            (self[y, x - 1], Point(x - 1, y)),
-            (self[y, x + 1], Point(x + 1, y)),
-            (self[y + 1, x - 1], Point(x - 1, y + 1)),
-            (self[y + 1, x], Point(x, y + 1)),
-            (self[y + 1, x + 1], Point(x + 1, y + 1)),
+            (self[y - 1, x - 1], (x - 1, y - 1)),
+            (self[y - 1, x], (x, y - 1)),
+            (self[y - 1, x + 1], (x + 1, y - 1)),
+            (self[y, x - 1], (x - 1, y)),
+            (self[y, x + 1], (x + 1, y)),
+            (self[y + 1, x - 1], (x - 1, y + 1)),
+            (self[y + 1, x], (x, y + 1)),
+            (self[y + 1, x + 1], (x + 1, y + 1)),
         ]
     
     def link(self, x1, y1, x2, y2):
@@ -151,19 +104,19 @@ class Engine:
         
         # make sure both cells are not already linked
         for entanglement in self.entangled:
-            if Point(x1, y1) in entanglement or Point(x2, y2) in entanglement:
+            if (x1, y1) in entanglement or (x2, y2) in entanglement:
                 return
             
         # make sure both cells are not the same
         if (x1, y1) == (x2, y2):
             return
             
-        self.entangled.append((Point(x1, y1), Point(x2, y2)))
+        self.entangled.append(((x1, y1), (x2, y2)))
 
     def unlink(self, x1, y1, x2, y2):
         """Unlink two cells."""
-        if (Point(x1, y1), Point(x2, y2)) in self.entangled:
-            self.entangled.remove((Point(x1, y1), Point(x2, y2)))
+        if ((x1, y1), (x2, y2)) in self.entangled:
+            self.entangled.remove(((x1, y1), (x2, y2)))
 
     def iterate(self):
         current_cells = self.cells
@@ -180,11 +133,11 @@ class Engine:
                     if alive_neighbours == 4:
                         for neighbour in neighbours:
                             if neighbour[0] == CellState.ALIVE:
-                                self.link(x, y, neighbour[1].x, neighbour[1].y)
+                                self.link(x, y, neighbour[1][0], neighbour[1][1])
 
                                 # put into superposition
                                 next_cells[y % self.height][x % self.width] = CellState.SUPERPOSITION
-                                next_cells[neighbour[1].y % self.height][neighbour[1].x % self.width] = CellState.SUPERPOSITION
+                                next_cells[neighbour[1][1] % self.height][neighbour[1][0] % self.width] = CellState.SUPERPOSITION
 
                 elif current_cells[y % self.height][x % self.width] == CellState.ALIVE and (alive_neighbours > 5 or alive_neighbours < 2):
                     next_cells[y % self.height][x % self.width] = CellState.DEAD
@@ -195,18 +148,18 @@ class Engine:
 
                     # check for entanglements
                     for entanglement in self.entangled:
-                        if Point(x, y) in entanglement:
+                        if (x, y) in entanglement:
                             
                             # get the other cell
-                            other_cell = entanglement[0] if entanglement[0] != Point(x, y) else entanglement[1]
-                            other_cell_state = current_cells[other_cell.y % self.height][other_cell.x % self.width]
+                            other_cell = entanglement[0] if entanglement[0] != (x, y) else entanglement[1]
+                            other_cell_state = current_cells[other_cell[1] % self.height][other_cell[0] % self.width]
                             
                             if other_cell_state == CellState.SUPERPOSITION:
                                 # collapse the other cell (in reality this would be the difference in spin between the two particles but our quantum states are binary)
-                                next_cells[other_cell.y % self.height][other_cell.x % self.width] = CellState.DEAD if next_cells[y % self.height][x % self.width] == CellState.ALIVE else CellState.ALIVE
+                                next_cells[other_cell[1] % self.height][other_cell[0] % self.width] = CellState.DEAD if next_cells[y % self.height][x % self.width] == CellState.ALIVE else CellState.ALIVE
 
                             # unlink the two cells
-                            self.unlink(x, y, other_cell.x, other_cell.y)
+                            self.unlink(x, y, other_cell[0], other_cell[1])
 
         # make it official
         if self.cells == next_cells:
