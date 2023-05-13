@@ -47,14 +47,14 @@ def parse_args(args: list[str]) -> Config:
         "-m",
         "--max-iter",
         type=int,
-        default=100,
+        default=-1,
         help="the maximum number of iterations",
     )
     parser.add_argument(
         "-s",
         "--ips",
         type=int,
-        default=1,
+        default=9999999,
         help="the number of iterations per second to run the simulation at",
     )
     parser.add_argument(
@@ -64,7 +64,7 @@ def parse_args(args: list[str]) -> Config:
         "-a",
         "--start-alive-prob",
         type=float,
-        default=0.5,
+        default=0.25,
         help="the probability of a cell starting alive",
     )
 

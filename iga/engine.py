@@ -139,7 +139,7 @@ class Engine:
                 neighbours = self.get_neighbours(x, y)
                 alive_neighbours = sum(neighbour[0] == CellState.ALIVE for neighbour in neighbours)
 
-                if current_cells[y % self.height][x % self.width] == CellState.DEAD and alive_neighbours in (3, 4):
+                if current_cells[y % self.height][x % self.width] == CellState.DEAD and alive_neighbours in (3, 4, 5):
                     next_cells[y % self.height][x % self.width] = CellState.ALIVE
 
                     if alive_neighbours == 4:
