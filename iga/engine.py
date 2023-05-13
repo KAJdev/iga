@@ -84,6 +84,7 @@ class Engine:
 
     def __post_init__(self):
         """Post-initialization hook."""
+        random.seed(self.config.seed)
         self.entangled = self.entangled or []
         self.config = self.config or cli.Config()
 
@@ -176,8 +177,7 @@ class Engine:
                 if current_cells[y % self.height][x % self.width] == CellState.DEAD and alive_neighbours in (3, 4):
                     next_cells[y % self.height][x % self.width] = CellState.ALIVE
 
-                    # randomly entangle the two cells
-                    if random.random() < self.config.entangle_prob:
+                    if alive_neighbours == 4:
                         for neighbour in neighbours:
                             if neighbour[0] == CellState.ALIVE:
                                 self.link(x, y, neighbour[1].x, neighbour[1].y)
@@ -221,7 +221,7 @@ class Engine:
         # make sure we overwrite the previous grid
         print_str = "\033[2J"
         print_str += "\n".join(["".join([str(cell) for cell in row]) for row in self.cells])
-        status_str = f"Entangled: {len(self.entangled):>5} | Iteration: {iteration:>5} | Iterations per second: {cur_sec_iter_count:>5} | Entanglement probability: {self.config.entangle_prob:>5}"
+        status_str = f"Entangled: {len(self.entangled):>5} | Iteration: {iteration:>5} | Iterations per second: {cur_sec_iter_count:>5} | Seed: {self.config.seed:>5}"
 
         # Print the status string
         sys.stdout.write(f"{print_str}\n{status_str}\n")

@@ -11,7 +11,7 @@ class Config:
         height: The height of the initial grid
         max_iter: The maximum number of iterations
         ips: The number of iterations per second to run the simulation at
-        entangle_prob: The probability of entanglement between two cells
+        seed: The seed to use for the random number generator
         start_alive_prob: The probability of a cell starting alive
 
     """
@@ -19,7 +19,7 @@ class Config:
     height: int = 24
     max_iter: int = 100
     ips: int = 1
-    entangle_prob: float = 0.5
+    seed: Optional[int] = None
     start_alive_prob: float = 0.5
 
 
@@ -57,11 +57,7 @@ def parse_args(args: list[str]) -> Config:
         help="the number of iterations per second to run the simulation at",
     )
     parser.add_argument(
-        "-e",
-        "--entangle-prob",
-        type=float,
-        default=0.5,
-        help="the probability of entanglement between two cells",
+        "--seed", type=int, default=None, help="the seed to use for the random number generator"
     )
     parser.add_argument(
         "-a",
