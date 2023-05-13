@@ -33,12 +33,12 @@ class Engine:
     width: int = None
     height: int = None
     cells: list[list[CellState]] = None
-    entangled: list[tuple[Point, Point]] = None
+    entangled: dict[Point, Point] = None
 
     def __post_init__(self):
         """Post-initialization hook."""
         random.seed(self.config.seed)
-        self.entangled = self.entangled or []
+        self.entangled = self.entangled or {}
         self.config = self.config or cli.Config()
 
         self.width = self.width or self.config.width
@@ -103,20 +103,32 @@ class Engine:
         """Link two cells together."""
         
         # make sure both cells are not already linked
-        for entanglement in self.entangled:
-            if (x1, y1) in entanglement or (x2, y2) in entanglement:
-                return
+        if (x1, y1) in self.entangled:
+            return
+        if (x2, y2) in self.entangled:
+            return
             
         # make sure both cells are not the same
         if (x1, y1) == (x2, y2):
             return
             
-        self.entangled.append(((x1, y1), (x2, y2)))
+        self.entangled[(x1, y1)] = (x2, y2)
+        self.entangled[(x2, y2)] = (x1, y1)
 
     def unlink(self, x1, y1, x2, y2):
-        """Unlink two cells."""
-        if ((x1, y1), (x2, y2)) in self.entangled:
-            self.entangled.remove(((x1, y1), (x2, y2)))
+        """Unlink two cells."""    
+        # make sure both cells are linked
+        if (x1, y1) not in self.entangled:
+            return
+        if (x2, y2) not in self.entangled:
+            return
+            
+        # make sure both cells are not the same
+        if (x1, y1) == (x2, y2):
+            return
+            
+        del self.entangled[(x1, y1)]
+        del self.entangled[(x2, y2)]
 
     def iterate(self):
         current_cells = self.cells
@@ -147,19 +159,20 @@ class Engine:
                     next_cells[y % self.height][x % self.width] = random.choice([CellState.ALIVE, CellState.DEAD])
 
                     # check for entanglements
-                    for entanglement in self.entangled:
-                        if (x, y) in entanglement:
-                            
-                            # get the other cell
-                            other_cell = entanglement[0] if entanglement[0] != (x, y) else entanglement[1]
-                            other_cell_state = current_cells[other_cell[1] % self.height][other_cell[0] % self.width]
-                            
-                            if other_cell_state == CellState.SUPERPOSITION:
-                                # collapse the other cell (in reality this would be the difference in spin between the two particles but our quantum states are binary)
-                                next_cells[other_cell[1] % self.height][other_cell[0] % self.width] = CellState.DEAD if next_cells[y % self.height][x % self.width] == CellState.ALIVE else CellState.ALIVE
+                    other_cell = self.entangled.get((x, y), None)
+                    if other_cell is not None:
+                        
+                        # get the other cell
+                        other_cell_state = current_cells[other_cell[1] % self.height][other_cell[0] % self.width]
+                        
+                        if other_cell_state == CellState.SUPERPOSITION:
+                            # collapse the other cell (in reality this would be the difference in spin between the two particles but our quantum states are binary)
+                            next_cells[other_cell[1] % self.height][other_cell[0] % self.width] = CellState.DEAD if next_cells[y % self.height][x % self.width] == CellState.ALIVE else CellState.ALIVE
 
-                            # unlink the two cells
-                            self.unlink(x, y, other_cell[0], other_cell[1])
+                        # unlink the two cells
+                        self.unlink(x, y, other_cell[0], other_cell[1])
+
+                        break
 
         # make it official
         if self.cells == next_cells:
