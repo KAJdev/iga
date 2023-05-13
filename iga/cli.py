@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+import time
 from typing import Optional
 
 
@@ -19,7 +20,7 @@ class Config:
     height: int = 24
     max_iter: int = 100
     ips: int = 1
-    seed: Optional[int] = None
+    seed: int = field(default_factory=time.time_ns)
     start_alive_prob: float = 0.5
 
 
@@ -57,7 +58,7 @@ def parse_args(args: list[str]) -> Config:
         help="the number of iterations per second to run the simulation at",
     )
     parser.add_argument(
-        "--seed", type=int, default=None, help="the seed to use for the random number generator"
+        "--seed", type=int, default=time.time_ns(), help="the seed to use for the random number generator"
     )
     parser.add_argument(
         "-a",
